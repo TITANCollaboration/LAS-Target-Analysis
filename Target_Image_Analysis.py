@@ -1,11 +1,12 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 import os 
+import csv
 
 #----Read output csv from imageJ---- 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
-targetID = 'Cu_10_01'
+targetID = 'Cu_11_10'
 file = 'ImageJ_output\\'+targetID+ ' Measurements.csv'
 
 #Store the measurements taken with the following column structure: 
@@ -36,7 +37,7 @@ if define_mirror_coords == 1:
 
 #Option 2: Input mirror coordinates manually
 elif define_mirror_coords == 2:
-    if targetID == 'Cu_11_01':
+    if targetID[:5] == 'Cu_11':
         mirror_x = np.array([5.6339, 5.7381, 5.7381, 5.6339, 5.686]) #stores the x coordinate (in mirror mm) of each point ablated in order of ablation
         mirror_z = np.array([4.5855, 4.5855, 4.7305, 4.7305, 4.658]) #stores the z coordinate (in mirror mm) of each point ablated in order of ablation
         step_x = 0.0521 #step size in x (mirror mm)
@@ -51,6 +52,7 @@ elif define_mirror_coords == 2:
         step_z = 0.0725 #step size in z (mirror mm)
         mirror_center_x = 5.686 
         mirror_center_z = 4.658
+
     order = np.array(range(len(mirror_x)))
     center_offset = np.array([0,0])
 #Option 3: Read mirror coordinates from previously saved csv
@@ -74,9 +76,6 @@ ablated_z = ablation_spots[:,3]
 #Sorting all coordinates into a 2D grid
 
 #Sort by x, group columns together both in x and z to find rows/columns:
-
-
-
 
 sorted_z= np.argsort(ablated_z)
 ablated_x = ablated_x[sorted_z]
@@ -191,10 +190,16 @@ target_to_mirror_z = step_z/np.mean(vert_step)
 print("The conversion factor in x is: "+ str(target_to_mirror_x) + " mirror mm/target mm")
 print("The conversion factor in x is: "+ str(target_to_mirror_z) + " mirror mm/target mm")
 
-displacement = np.array([target_grid[grid_center_x][grid_center_z][0],target_grid[grid_center_x][grid_center_z][1]]) - target_centroid
-print("The center of the target is off by: " +str(displacement) + " target mm")
-print("The center of the target is off by: " +str([displacement[0]*target_to_mirror_x,displacement[1]*target_to_mirror_z])+ " mirror mm")
+target_displacement = np.array([target_grid[grid_center_x][grid_center_z][0],target_grid[grid_center_x][grid_center_z][1]]) - target_centroid
+mirror_displacement = [target_displacement[0]*target_to_mirror_x,target_displacement[1]*target_to_mirror_z]
+print("The center of the target is off by: " +str(target_displacement) + " target mm")
+print("The center of the target is off by: " +str(mirror_displacement)+ " mirror mm")
 
+writefile = 'Multi-Target Analysis.csv'
+write_data = [targetID, str(np.mean(horz_step)), str(np.mean(vert_step)), str(target_to_mirror_x), str(target_to_mirror_z), str(mirror_center_x), str(mirror_center_z), str(mirror_displacement[0]), str(mirror_displacement[1])]
+with open(writefile, 'a') as csvfile:
+    csvwriter = csv.writer(csvfile,lineterminator='\n')
+    csvwriter.writerow(write_data)
 
 def visualize(grid):
     max_row_length = max(len(row) if row is not None else 0 for row in grid)
@@ -208,8 +213,8 @@ def visualize(grid):
     return grid_padded
 
 
-print("Target grid:")
-print(visualize(target_grid))
-print("Mirror grid:")
-print(visualize(mirror_grid))
+#print("Target grid:")
+#print(visualize(target_grid))
+#print("Mirror grid:")
+#print(visualize(mirror_grid))
 
