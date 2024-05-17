@@ -6,7 +6,7 @@ import csv
 #----Read output csv from imageJ---- 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
-targetID = 'Cu_11_10'
+targetID = 'Al_05'
 file = 'ImageJ_output\\'+targetID+ ' Measurements.csv'
 
 #Store the measurements taken with the following column structure: 
@@ -44,6 +44,7 @@ elif define_mirror_coords == 2:
         step_z = 0.0725 #step size in z (mirror mm)
         mirror_center_x = 5.686 
         mirror_center_z = 4.658
+        step_thresh = 0.5
 
     elif targetID == 'Cu_10_01':
         mirror_x = np.array([5.5818, 5.6339, 5.686, 5.7381, 5.7902, 5.7902,5.7902, 5.7381, 5.686, 5.6339, 5.5818, 5.5818, 5.686])
@@ -52,7 +53,17 @@ elif define_mirror_coords == 2:
         step_z = 0.0725 #step size in z (mirror mm)
         mirror_center_x = 5.686 
         mirror_center_z = 4.658
+        step_thresh = 0.5
 
+    elif targetID == 'Al_05':
+        #(5.56,4.78), (5.46, 4.88), (5.46, 4.48), (5.86,4.48), (5.86, 4.58), (5.86, 4.68)  missing from picture
+        mirror_x = np.array([5.61,5.61,5.61,5.61,5.61,5.635,5.635,5.635,5.635,5.635,5.66,5.66,5.66,5.66,5.66,5.66,5.685,5.685,5.685,5.685,5.685,5.71,5.71,5.71,5.71,5.71,5.71,5.66,5.61,5.56,5.56,5.56,5.56,5.61,5.66,5.71,5.76,5.76,5.76,5.76,5.76,5.76,5.66,5.56,5.46,5.46,5.46,5.46,5.56,5.66,5.76,5.86,5.86])
+        mirror_z = np.array([4.63,4.655,4.68,4.705,4.73,4.73,4.705,4.68,4.655,4.63,4.63,4.655,4.68,4.705,4.73,4.73,4.705,4.68,4.655,4.63,4.63,4.655,4.68,4.705,4.73,4.78,4.78,4.78,4.73,4.68,4.63,4.58,4.58,4.58,4.58,4.58,4.63,4.68,4.73,4.78,4.88,4.88,4.88,4.78,4.68,4.58,4.48,4.48,4.48,4.48,4.78,4.88])
+        step_x = 0.025 #smallest step size
+        step_z = 0.05
+        mirror_center_x = 5.66
+        mirror_center_z = 4.68
+        step_thresh = 0.5
     order = np.array(range(len(mirror_x)))
     center_offset = np.array([0,0])
 #Option 3: Read mirror coordinates from previously saved csv
@@ -88,7 +99,7 @@ col = []
 rows = []
 row = []
 min_step_x = 0
-step_thresh = 0.5
+
 for i in range(len(ablated_z)-1):
     row.append(i)
     if np.abs(ablated_z[i]-ablated_z[i+1])>step_thresh: #assuming vertical step size >step_thresh target mm
@@ -182,6 +193,9 @@ for r, row in enumerate(target_grid):
                 found_right_neighbour = True
             n_steps+=1
 
+
+
+
 print("The average horizontal step is: "+ str(np.mean(horz_step)) + "mm")
 print("The average vertical step is: "+ str(np.mean(vert_step)) + "mm")
 
@@ -190,7 +204,7 @@ target_to_mirror_z = step_z/np.mean(vert_step)
 print("The conversion factor in x is: "+ str(target_to_mirror_x) + " mirror mm/target mm")
 print("The conversion factor in x is: "+ str(target_to_mirror_z) + " mirror mm/target mm")
 
-target_displacement = np.array([target_grid[grid_center_x][grid_center_z][0],target_grid[grid_center_x][grid_center_z][1]]) - target_centroid
+target_displacement = np.array([target_grid[grid_center_x][grid_center_z][0],target_grid[grid_center_x][grid_center_z][1]]) - target_centroid #assumes target grid centered on target center
 mirror_displacement = [target_displacement[0]*target_to_mirror_x,target_displacement[1]*target_to_mirror_z]
 print("The center of the target is off by: " +str(target_displacement) + " target mm")
 print("The center of the target is off by: " +str(mirror_displacement)+ " mirror mm")
@@ -213,8 +227,8 @@ def visualize(grid):
     return grid_padded
 
 
-#print("Target grid:")
-#print(visualize(target_grid))
 #print("Mirror grid:")
 #print(visualize(mirror_grid))
 
+print("Target grid:")
+print(visualize(target_grid))
