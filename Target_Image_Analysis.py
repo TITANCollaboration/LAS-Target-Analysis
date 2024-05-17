@@ -129,7 +129,10 @@ mirror_grid = [[None] * len(cols) for _ in range(len(rows))]
 grid_center_x = int(len(target_grid)/2) + center_offset[0]
 grid_center_z = int(len(target_grid[0])/2) + center_offset[1]
 row_counter = 0
+
+#Fill grid and add spacings row by row:
 for row in rows:
+    #sort columns within each row
     sorted_cols = np.argsort(ablated_x[row])
     ablated_x[row] = ablated_x[row][sorted_cols]
     ablated_z[row] = ablated_z[row][sorted_cols]
@@ -137,15 +140,26 @@ for row in rows:
     mirror_z[row] = mirror_z[row][sorted_cols]
     order[row] = order[row][sorted_cols]
 
+    #Take the first x value in the row (leftmost) and get horizontal spacing from the leftmost x value in any row 
     spacings = np.array([ablated_x[row][0]-np.min(ablated_x)])
+
+    #Copy the row and get all of the follow horizontal spacings of the points
     row_copy = np.append(ablated_x[row][1:],0)
     spacings = np.append(spacings,np.abs(row_copy-ablated_x[row])[:-1])
+
+    #Divide the spacings into the minimum spacing and round to the nearest integer
+    #THIS ASSUMES ALL STEPS ARE INTEGER MULTIPLES OF THE SMALLEST STEP
     spacings = np.round(spacings/min_step_x)
-    spacing_counter = 0
+
+    spacing_counter = 0 #counts the total number of empty spaces in the row (in units of the min step x)
     for i in range(len(row)):
+
+        #Loop over each coordinate in the row and add to the grids
         if len(row)==len(cols):
             target_grid[row_counter][i] = [ablated_x[row][i], ablated_z[row][i]]
             mirror_grid[row_counter][i] = [mirror_x[row][i], mirror_z[row][i]]
+        
+        #if there is empty space to the left of the current coordinate add the coordinate in the correct grid index:
         else:
             if int(spacings[i])>1:
                 target_grid[row_counter][i+spacing_counter+int(spacings[i])-1] = [ablated_x[row][i],ablated_z[row][i]]
