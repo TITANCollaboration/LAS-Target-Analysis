@@ -1,0 +1,14 @@
+﻿z steering -0.3mm,at 135mm focus pos,jog step size = 0.01mm,Note we see a low current that transitions to higher current (possibly due to the surface being contaminated)
+Laser at 20Hz,x steering (mm),current (pA) Averaging 5 readings,Sharply dies 
+,-0.2,0,
+,-0.23,2,
+,-0.24,100,
+,-0.3,100,
+,-0.4,100,
+,-0.5,140,
+,-0.51,140,
+,-0.6,120,
+,-0.7,110,
+,-0.7,90,Swinging around more (possibly hitting edge)
+,-0.71,0,
+,-0.8,0,
