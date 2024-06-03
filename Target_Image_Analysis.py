@@ -3,10 +3,48 @@ import matplotlib.pyplot as plt
 import os 
 import csv
 
+
+
+def get_displacement(target_centroid, mirror_centroid, target_coords, mirror_coords, target_to_mirror):
+    """
+    Takes target and mirror coords and the relation between them and determines the displacement of the spot from the set position in mirror coords
+    @params:
+    target_centroid : numpy array, the centroid position of the target in target mm
+    mirror_centroid : numpy array, the assumed centroid position of the target in mirror mm
+    target_coords : numpy array, the coordinates of the point in target mm
+    mirror_coords : numpy array, the assumed coordinates of the point in mirror mm 
+    target_to_mirror : numpy array, [x scaling factor in mirror mm/target mm, z scaling factor in mirror mm/target mm] 
+    """
+    #Get vector from the target center to the point in target mm
+    target_pos = target_coords-target_centroid
+
+    #Scale vector with conversion factors
+    mirror_pos = target_pos*target_to_mirror
+
+    displacement = (mirror_coords-mirror_centroid) - mirror_pos
+
+    return displacement
+
+
+def visualize_coords(grid):
+    max_row_length = max(len(row) if row is not None else 0 for row in grid)
+
+    # Convert None values to strings with the same length as [21.90, 92.245]
+    grid_padded = [
+        ['{: <1}'.format(str(elem)) if elem is not None else ' ' * 1 for elem in row]
+        for row in grid
+    ]
+    grid_padded = '\n'.join([' '.join(row) for row in grid_padded])
+    return grid_padded
+
+def rotate(ablation_spots, theta):
+    rotation_matrix = np.array([[np.cos(theta), -1*np.sin(theta)],[np.sin(theta), np.cos(theta)]])
+    return np.dot(ablation_spots, rotation_matrix.T)
+
 #----Read output csv from imageJ---- 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
-targetID = 'Al_05'
+targetID = 'Al_05 Rotate'
 file = 'ImageJ_output\\'+targetID+ ' Measurements.csv'
 
 #Store the measurements taken with the following column structure: 
@@ -56,14 +94,25 @@ elif define_mirror_coords == 2:
         step_thresh = 0.5
 
     elif targetID == 'Al_05':
-        #(5.56,4.78), (5.46, 4.88), (5.46, 4.48), (5.86,4.48), (5.86, 4.58), (5.86, 4.68)  missing from picture
+        #(5.56,4.78), (5.46, 4.88), (5.46, 4.48), (5.86,4.48), (5.86, 4.58), (5.86, 4.68) () missing from picture
+
         mirror_x = np.array([5.61,5.61,5.61,5.61,5.61,5.635,5.635,5.635,5.635,5.635,5.66,5.66,5.66,5.66,5.66,5.66,5.685,5.685,5.685,5.685,5.685,5.71,5.71,5.71,5.71,5.71,5.71,5.66,5.61,5.56,5.56,5.56,5.56,5.61,5.66,5.71,5.76,5.76,5.76,5.76,5.76,5.76,5.66,5.56,5.46,5.46,5.46,5.46,5.56,5.66,5.76,5.86,5.86])
         mirror_z = np.array([4.63,4.655,4.68,4.705,4.73,4.73,4.705,4.68,4.655,4.63,4.63,4.655,4.68,4.705,4.73,4.73,4.705,4.68,4.655,4.63,4.63,4.655,4.68,4.705,4.73,4.78,4.78,4.78,4.73,4.68,4.63,4.58,4.58,4.58,4.58,4.58,4.63,4.68,4.73,4.78,4.88,4.88,4.88,4.78,4.68,4.58,4.48,4.48,4.48,4.48,4.78,4.88])
         step_x = 0.025 #smallest step size
         step_z = 0.05
         mirror_center_x = 5.66
         mirror_center_z = 4.68
-        step_thresh = 0.5
+        step_thresh = 0.14
+
+    elif targetID =='Al_05 Rotate':
+        #(5.61,4.78), (5.56,4.78), (5.76, 4.68), (5.46,4.88), (5.46,4.78), (5.46,4.48), (5.86, 4.48), (5.86, 4.58), (5.86,4.68) skipped due to poor visibility
+        mirror_x = np.array([5.61,5.61 ,5.61,5.61, 5.61,5.635,5.635,5.635,5.635,5.635,5.66, 5.66, 5.66, 5.66, 5.66,5.685,5.685,5.685,5.685,5.685,5.71,5.71, 5.71,5.71, 5.71,5.71, 5.66,5.56,5.56,5.56,5.56, 5.61, 5.66, 5.71, 5.76, 5.76,5.76,5.76,5.76,5.66,5.56,5.46,5.46,5.56,5.66,5.76,5.86,5.86])
+        mirror_z = np.array([4.63,4.655,4.68,4.705,4.73,4.73, 4.705,4.68 ,4.655,4.63, 4.63, 4.655,4.68, 4.705,4.73,4.73, 4.705,4.68, 4.655,4.63, 4.63,4.655,4.68,4.705,4.73,4.78, 4.78,4.73,4.68,4.63,4.58, 4.58, 4.58, 4.58, 4.58, 4.63,4.73,4.78,4.88,4.88,4.88,4.68,4.58,4.48,4.48,4.48,4.78,4.88])
+        step_x = 0.025 #smallest step size
+        step_z = 0.05
+        mirror_center_x = 5.66
+        mirror_center_z = 4.68
+        step_thresh = 0.2
     order = np.array(range(len(mirror_x)))
     center_offset = np.array([0,0])
 #Option 3: Read mirror coordinates from previously saved csv
@@ -74,15 +123,12 @@ elif define_mirror_coords == 3:
 else:
     raise ValueError('define_mirror_coords is unexpected value: ' +str(define_mirror_coords))
 
+rotate_angle = measurements[2,11]/180*-1*np.pi
+rotated_centroids = rotate(np.array(measurements[:,2:4]), rotate_angle)
+target_centroid = np.array([rotated_centroids[1, 0],rotated_centroids[1, 1]])
 
-
-target_centroid = np.array([measurements[1, 2],measurements[1, 3]])
-ablation_spots = measurements[2:,:]
-
-ablated_x = ablation_spots[:,2]
-ablated_z = ablation_spots[:,3]
-
-
+ablated_x = rotated_centroids[3:,0]
+ablated_z = rotated_centroids[3:,1]
 
 #Sorting all coordinates into a 2D grid
 
@@ -124,14 +170,19 @@ for i in range(len(ablated_x)-1):
 col.append(range(len(ablated_x))[-1])
 cols.append(col)
 
-target_grid = [[None] * len(cols) for _ in range(len(rows))]
-mirror_grid = [[None] * len(cols) for _ in range(len(rows))]
-grid_center_x = int(len(target_grid)/2) + center_offset[0]
-grid_center_z = int(len(target_grid[0])/2) + center_offset[1]
-row_counter = 0
+target_grid = [[None] * (len(cols)) for _ in range(len(rows))]
+mirror_grid = [[None] * (len(cols)) for _ in range(len(rows))]
 
+target_grid = []
+mirror_grid = []
+
+row_counter = 0
+print(rows)
 #Fill grid and add spacings row by row:
 for row in rows:
+    target_grid.append([None])
+    mirror_grid.append([None])
+
     #sort columns within each row
     sorted_cols = np.argsort(ablated_x[row])
     ablated_x[row] = ablated_x[row][sorted_cols]
@@ -149,30 +200,50 @@ for row in rows:
 
     #Divide the spacings into the minimum spacing and round to the nearest integer
     #THIS ASSUMES ALL STEPS ARE INTEGER MULTIPLES OF THE SMALLEST STEP
-    spacings = np.round(spacings/min_step_x)
+    spacings = np.int32(np.round(spacings/min_step_x))
 
     spacing_counter = 0 #counts the total number of empty spaces in the row (in units of the min step x)
     for i in range(len(row)):
-
         #Loop over each coordinate in the row and add to the grids
         if len(row)==len(cols):
-            target_grid[row_counter][i] = [ablated_x[row][i], ablated_z[row][i]]
-            mirror_grid[row_counter][i] = [mirror_x[row][i], mirror_z[row][i]]
+            #target_grid[row_counter][i] = [ablated_x[row][i], ablated_z[row][i]]
+            #mirror_grid[row_counter][i] = [mirror_x[row][i], mirror_z[row][i]]
+
+            target_grid[row_counter].append([ablated_x[row][i], ablated_z[row][i]])
+            mirror_grid[row_counter].append([mirror_x[row][i], mirror_z[row][i]])
+            
+
+
         
         #if there is empty space to the left of the current coordinate add the coordinate in the correct grid index:
         else:
             if int(spacings[i])>1:
-                target_grid[row_counter][i+spacing_counter+int(spacings[i])-1] = [ablated_x[row][i],ablated_z[row][i]]
-                mirror_grid[row_counter][i+spacing_counter+int(spacings[i])-1] = [mirror_x[row][i],mirror_z[row][i]]
+                #target_grid[row_counter][i+spacing_counter+spacings[i]-1] = [ablated_x[row][i],ablated_z[row][i]]
+                #mirror_grid[row_counter][i+spacing_counter+spacings[i]-1] = [mirror_x[row][i],mirror_z[row][i]]
+                target_grid[row_counter].extend([None]*(spacings[i]-1))
+                target_grid[row_counter].append(([ablated_x[row][i], ablated_z[row][i]]))
+
+                mirror_grid[row_counter].extend([None]*(spacings[i]-1))
+                mirror_grid[row_counter].append(([mirror_x[row][i], mirror_z[row][i]]))
             else:
-                target_grid[row_counter][i+spacing_counter+int(spacings[i])] = [ablated_x[row][i],ablated_z[row][i]]
-                mirror_grid[row_counter][i+spacing_counter+int(spacings[i])] = [mirror_x[row][i],mirror_z[row][i]]
+                #target_grid[row_counter][i+spacing_counter+spacings[i]] = [ablated_x[row][i],ablated_z[row][i]]
+                #mirror_grid[row_counter][i+spacing_counter+spacings[i]] = [mirror_x[row][i],mirror_z[row][i]]
+
+                target_grid[row_counter].extend([None]*spacings[i])
+                target_grid[row_counter].append(([ablated_x[row][i], ablated_z[row][i]]))
+
+                mirror_grid[row_counter].extend([None]*spacings[i])
+                mirror_grid[row_counter].append(([mirror_x[row][i], mirror_z[row][i]]))
             if int(spacings[i])>0:
-                spacing_counter+=int(spacings[i])-1
+                spacing_counter+=spacings[i]-1
+        #print(row_counter)
     row_counter+=1
 
+grid_center_x = int(len(target_grid)/2) + center_offset[0]
+grid_center_z = int(len(target_grid[0])/2) + center_offset[1]
 
-
+#print("Target grid:")
+#print(visualize_coords(target_grid))
 #-------Analyze the data---------
 
 #spacings- consider an ordered traversal:
@@ -229,20 +300,11 @@ with open(writefile, 'a') as csvfile:
     csvwriter = csv.writer(csvfile,lineterminator='\n')
     csvwriter.writerow(write_data)
 
-def visualize(grid):
-    max_row_length = max(len(row) if row is not None else 0 for row in grid)
-
-    # Convert None values to strings with the same length as [21.90, 92.245]
-    grid_padded = [
-        ['{: <16}'.format(str(elem)) if elem is not None else ' ' * 16 for elem in row]
-        for row in grid
-    ]
-    grid_padded = '\n'.join([' '.join(row) for row in grid_padded])
-    return grid_padded
 
 
 #print("Mirror grid:")
 #print(visualize(mirror_grid))
+#print("Target grid:")
+#print(visualize_coords(target_grid))
 
-print("Target grid:")
-print(visualize(target_grid))
+
