@@ -6,6 +6,7 @@ import pandas as pd
 import math
 import matplotlib.colors as mcolors
 from matplotlib.patches import Ellipse
+from matplotlib.colors import LogNorm
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
@@ -312,7 +313,7 @@ X, Z = np.meshgrid(x_values, z_values)
 # Plot the grid values
 plt.figure()
 plt.contourf(X, Z, charge_CuAl_06, cmap=cm.viridis, levels = 8)
-plt.colorbar(label='Charge per pulse (pC)', fontsize = 'large')
+plt.colorbar(label='Charge per pulse (pC)')
 
 plt.xlabel('Mirror X position (mm)', fontsize = 'large')
 plt.ylabel('Mirror Z position (mm)', fontsize = 'large')
@@ -346,7 +347,7 @@ X, Z = np.meshgrid(x_values, z_values)
 # Plot the grid values
 plt.figure()
 plt.contourf(X, Z, charge_CuAl_13, cmap=cm.viridis, levels = 50)
-plt.colorbar(label='Charge per pulse (nC)', fontsize = 'large')
+plt.colorbar(label='Charge per pulse (nC)')
 
 plt.xlabel('Mirror X position (mm)', fontsize = 'large')
 plt.ylabel('Mirror Z position (mm)', fontsize = 'large')
@@ -371,7 +372,7 @@ X, Z = np.meshgrid(x_values, z_values)
 # Plot the grid values
 plt.figure()
 plt.contourf(X, Z, grid_data_CuAl_13, cmap=cm.viridis, levels = 20)
-plt.colorbar(label='Charge per pulse (pC)', fontsize = 'large')
+plt.colorbar(label='Charge per pulse (pC)')
 plt.xlabel('Mirror X position (mm)', fontsize = 'large')
 plt.ylabel('Mirror Z position (mm)', fontsize = 'large')
 plt.title('Al Cu Toonie Target Center')
@@ -427,10 +428,22 @@ ellipse = Ellipse(xy=(5.86,4.658), width=0.53, height=0.72, angle=0, edgecolor='
 
 # Add the ellipse to the axes
 ax.add_patch(ellipse)
-plt.savefig(file[:-4]+'_imshow_plot.png')
-
+plt.savefig(file[:-4]+'_imshow_plot.jpeg')
 plt.close()
 
+charge_CuAl_14 = charge_CuAl_14[:,3:-1]
+#5.865,4.661
+
+plt.figure()
+plt.imshow(charge_CuAl_14/1e12, norm = LogNorm(), extent=[(x_values[3]-5.865)/0.0531, (x_values[-2]-5.865)/0.0531, (z_values[0]-4.661)/0.072, (z_values[-1]-4.661)/0.072])
+plt.xlabel('Target X position (mm)', fontsize = 'large')
+plt.ylabel('Target Z position (mm)', fontsize  = 'large')
+plt.title('Aluminum Copper Toonie Target')
+plt.colorbar(label='Charge per pulse (C)')
+plt.gca().set_aspect(1)
+plt.savefig(file[:-4]+"_logImshow.jpeg")
+
+#plt.close()
 
 
 plt.show()
