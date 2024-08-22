@@ -4,7 +4,7 @@ import pandas as pd
 import os
 
 os.chdir(os.path.dirname(__file__))
-os.chdir('20240814 Scope Data/14microsecondDelay')
+os.chdir('20240821/20240821-output-from-switch')
 delay = []
 
 for f in os.listdir():
@@ -15,16 +15,19 @@ for f in os.listdir():
 
 		edge_ch1 = dData['CH1'].idxmax() # find rising edge of laser TTL
 		edge_ch2 = dData['CH2'].idxmin() # find falling edge of arduino TTL
-		if (data['TIME'][edge_ch2] - data['TIME'][edge_ch1])*1e6 < 12 or (data['TIME'][edge_ch2] - data['TIME'][edge_ch1])*1e6 >14:
-			continue
+		#if (data['TIME'][edge_ch2] - data['TIME'][edge_ch1])*1e6 < 9 or (data['TIME'][edge_ch2] - data['TIME'][edge_ch1])*1e6 >12:
+		#	continue
 		delay.append((data['TIME'][edge_ch2] - data['TIME'][edge_ch1])*1e6)
-
+good = len(np.where(np.array(delay)<10.6)[0])
+bad = len(np.where(np.array(delay)>=10.6)[0])
+bad_ratio = (bad/(bad+good))
+print(bad_ratio)
 plt.figure('hist')												
 plt.hist(delay, 12)
-plt.xlim(13.2,14)
+plt.xlim(9,12)
 plt.xlabel('Pulse Delay (us)')
 plt.annotate('mean: {0:.2f}us\nstd: {1:.2f}us\nrange: {2:.2f}us\nsamples: {3}'.format(np.mean(delay), np.std(delay), np.max(delay)-np.min(delay), len(delay)), (.95,.95), xycoords='axes fraction', fontsize=16, ha='right', va='top')
-plt.savefig('delayhist14us.png')
+#plt.savefig('switch_signal_jitter_unfiltered.png')
 
 #sanity check for edge finding
 sanity = False
