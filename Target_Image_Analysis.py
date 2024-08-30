@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import os 
 import csv
-
-
+import matplotlib.pyplot as plt
 
 def get_displacement(target_centroid, mirror_centroid, target_coords, mirror_coords, target_to_mirror):
     """
@@ -44,7 +43,7 @@ def rotate(ablation_spots, theta):
 #----Read output csv from imageJ---- 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
-targetID = 'Al_05 Rotate'
+targetID = 'Cu_17'
 file = 'ImageJ_output\\'+targetID+ ' Measurements.csv'
 
 #Store the measurements taken with the following column structure: 
@@ -82,7 +81,9 @@ elif define_mirror_coords == 2:
         step_z = 0.0725 #step size in z (mirror mm)
         mirror_center_x = 5.686 
         mirror_center_z = 4.658
-        step_thresh = 0.5
+        step_thresh_x = 0.5
+        step_thresh_z = 0.5
+        
 
     elif targetID == 'Cu_10_01':
         mirror_x = np.array([5.5818, 5.6339, 5.686, 5.7381, 5.7902, 5.7902,5.7902, 5.7381, 5.686, 5.6339, 5.5818, 5.5818, 5.686])
@@ -91,8 +92,8 @@ elif define_mirror_coords == 2:
         step_z = 0.0725 #step size in z (mirror mm)
         mirror_center_x = 5.686 
         mirror_center_z = 4.658
-        step_thresh = 0.5
-
+        step_thresh_x = 0.5
+        step_thresh_z = 0.5
     elif targetID == 'Al_05':
         #(5.56,4.78), (5.46, 4.88), (5.46, 4.48), (5.86,4.48), (5.86, 4.58), (5.86, 4.68) () missing from picture
 
@@ -102,38 +103,66 @@ elif define_mirror_coords == 2:
         step_z = 0.05
         mirror_center_x = 5.66
         mirror_center_z = 4.68
-        step_thresh = 0.14
-
+        step_thresh_x = 0.14
+        step_thresh_z = 0.14
     elif targetID =='Al_05 Rotate':
         #(5.61,4.78), (5.56,4.78), (5.76, 4.68), (5.46,4.88), (5.46,4.78), (5.46,4.48), (5.86, 4.48), (5.86, 4.58), (5.86,4.68) skipped due to poor visibility
         mirror_x = np.array([5.61,5.61 ,5.61,5.61, 5.61,5.635,5.635,5.635,5.635,5.635,5.66, 5.66, 5.66, 5.66, 5.66,5.685,5.685,5.685,5.685,5.685,5.71,5.71, 5.71,5.71, 5.71,5.71, 5.66,5.56,5.56,5.56,5.56, 5.61, 5.66, 5.71, 5.76, 5.76,5.76,5.76,5.76,5.66,5.56,5.46,5.46,5.56,5.66,5.76,5.86,5.86])
         mirror_z = np.array([4.63,4.655,4.68,4.705,4.73,4.73, 4.705,4.68 ,4.655,4.63, 4.63, 4.655,4.68, 4.705,4.73,4.73, 4.705,4.68, 4.655,4.63, 4.63,4.655,4.68,4.705,4.73,4.78, 4.78,4.73,4.68,4.63,4.58, 4.58, 4.58, 4.58, 4.58, 4.63,4.73,4.78,4.88,4.88,4.88,4.68,4.58,4.48,4.48,4.48,4.78,4.88])
-        step_x = 0.025 #smallest step size
-        step_z = 0.05
+        step_x = 0.025 #smallest step size in mirror mm
+        step_z = 0.025
         mirror_center_x = 5.66
         mirror_center_z = 4.68
-        step_thresh = 0.2
+        step_thresh_x = step_x/0.0531-0.05 #convert to target mm and assume uncertainty in step size of 0.05
+        step_thresh_z = step_z/0.072-0.05 
+        print(step_thresh_x)
     order = np.array(range(len(mirror_x)))
     center_offset = np.array([0,0])
+
+
 #Option 3: Read mirror coordinates from previously saved csv
 elif define_mirror_coords == 3:
     file = ''
     np.loadtxt(file)
 
-else:
-    raise ValueError('define_mirror_coords is unexpected value: ' +str(define_mirror_coords))
-
-rotate_angle = measurements[2,11]/180*-1*np.pi
+rotate_angle = measurements[2,11]/180*np.pi
+rotate_angle = 1.5/180*np.pi
 rotated_centroids = rotate(np.array(measurements[:,2:4]), rotate_angle)
 target_centroid = np.array([rotated_centroids[1, 0],rotated_centroids[1, 1]])
 
+
+
+
+minor_ticks_x = np.arange(3.2, 12.2, step_x/0.053)
+minor_ticks_y = np.arange(6.4, 13.4, step_z/0.072)
+
+print(step_x/0.053)
+
+plt.figure()
+plt.scatter(measurements[3:,2],measurements[3:,3])
+plt.gca().set_xticks(minor_ticks_x, minor = True)
+plt.gca().set_yticks(minor_ticks_y, minor = True)
+plt.grid(True, which='minor', linestyle='--', linewidth=0.5)
+plt.gca().invert_yaxis()
+
+#plt.figure()
+#plt.plot(measurements[3:,2],measurements[3:,3])
+#plt.gca().invert_yaxis()
+
+plt.figure()
+plt.plot(rotated_centroids[3:,0],rotated_centroids[3:,1])
+plt.gca().set_xticks(minor_ticks_x, minor = True)
+plt.gca().set_yticks(minor_ticks_y, minor = True)
+plt.grid(True, which='minor', linestyle='--', linewidth=0.5)
+plt.gca().invert_yaxis()
+
+plt.show()
 ablated_x = rotated_centroids[3:,0]
 ablated_z = rotated_centroids[3:,1]
 
 #Sorting all coordinates into a 2D grid
 
-#Sort by x, group columns together both in x and z to find rows/columns:
-
+#sort by z 
 sorted_z= np.argsort(ablated_z)
 ablated_x = ablated_x[sorted_z]
 ablated_z = ablated_z[sorted_z]
@@ -144,32 +173,40 @@ cols = []
 col = []
 rows = []
 row = []
-min_step_x = 0
 
+#iterating over sorted z indices except last one  
 for i in range(len(ablated_z)-1):
+    #add the index to the row 
     row.append(i)
-    if np.abs(ablated_z[i]-ablated_z[i+1])>step_thresh: #assuming vertical step size >step_thresh target mm
+    #if the vertical distance to the next point is greater than the threshold, add the row to the list of rows and start a new row for the next index
+    if np.abs(ablated_z[i]-ablated_z[i+1])>step_thresh_z: #assuming vertical step size>step_thresh target mm
         rows.append(row)
         row = []
+
+#add the final index to the last row and add the last row to the list of rows
 row.append(range(len(ablated_z))[-1])
 rows.append(row)
 
+#sort by x
+sorted_x = np.argsort(ablated_x)
 
+#finds the smallest difference in x coordinates that is a real step (ie. greater than the threshold)
+min_step_x = min((num for num in (ablated_x[sorted_x][i + 1] - ablated_x[sorted_x][i] for i in range(len(ablated_x[sorted_x]) - 1)) if num > step_thresh_x)) 
 
-sorted_x= np.argsort(ablated_x)
-
-
-#this finds the differences between the sorted x coordinates and takes the smallest one that is a real step (ie. greater than step_threshmm)
-min_step_x = min((num for num in (ablated_x[sorted_x][i + 1] - ablated_x[sorted_x][i] for i in range(len(ablated_x[sorted_x]) - 1)) if num > step_thresh)) 
-
+#iterate over sorted x indices except last one
 for i in range(len(ablated_x)-1):
+    #add the index to the column
     col.append(i)
-    if np.abs(ablated_x[sorted_x][i]-ablated_x[sorted_x][i+1])>step_thresh: #assuming horizontal step size >step_thresh target mm
+    #if the horizontal distance to the next point is greater than the threshold, add the column to the list of columns and start a new column for the next index
+    if np.abs(ablated_x[sorted_x][i]-ablated_x[sorted_x][i+1])>step_thresh_x: #assuming horizontal step size >step_thresh target mm
         cols.append(col)
         col = []
+    
+#accounting for the final index as with the rows:
 col.append(range(len(ablated_x))[-1])
 cols.append(col)
 
+#initialize target and mirror grids
 target_grid = [[None] * (len(cols)) for _ in range(len(rows))]
 mirror_grid = [[None] * (len(cols)) for _ in range(len(rows))]
 
@@ -177,7 +214,7 @@ target_grid = []
 mirror_grid = []
 
 row_counter = 0
-print(rows)
+
 #Fill grid and add spacings row by row:
 for row in rows:
     target_grid.append([None])
@@ -211,24 +248,17 @@ for row in rows:
 
             target_grid[row_counter].append([ablated_x[row][i], ablated_z[row][i]])
             mirror_grid[row_counter].append([mirror_x[row][i], mirror_z[row][i]])
-            
-
 
         
         #if there is empty space to the left of the current coordinate add the coordinate in the correct grid index:
         else:
             if int(spacings[i])>1:
-                #target_grid[row_counter][i+spacing_counter+spacings[i]-1] = [ablated_x[row][i],ablated_z[row][i]]
-                #mirror_grid[row_counter][i+spacing_counter+spacings[i]-1] = [mirror_x[row][i],mirror_z[row][i]]
                 target_grid[row_counter].extend([None]*(spacings[i]-1))
                 target_grid[row_counter].append(([ablated_x[row][i], ablated_z[row][i]]))
 
                 mirror_grid[row_counter].extend([None]*(spacings[i]-1))
                 mirror_grid[row_counter].append(([mirror_x[row][i], mirror_z[row][i]]))
             else:
-                #target_grid[row_counter][i+spacing_counter+spacings[i]] = [ablated_x[row][i],ablated_z[row][i]]
-                #mirror_grid[row_counter][i+spacing_counter+spacings[i]] = [mirror_x[row][i],mirror_z[row][i]]
-
                 target_grid[row_counter].extend([None]*spacings[i])
                 target_grid[row_counter].append(([ablated_x[row][i], ablated_z[row][i]]))
 
@@ -236,7 +266,6 @@ for row in rows:
                 mirror_grid[row_counter].append(([mirror_x[row][i], mirror_z[row][i]]))
             if int(spacings[i])>0:
                 spacing_counter+=spacings[i]-1
-        #print(row_counter)
     row_counter+=1
 
 grid_center_x = int(len(target_grid)/2) + center_offset[0]
@@ -264,10 +293,14 @@ for r, row in enumerate(target_grid):
         while not found_bottom_neighbour:
             if n_steps+r>len(target_grid)-1:
                 break
+            elif c>len(target_grid[r+n_steps])-1:
+                n_steps+=1
+                raise ValueError("WARNING: THE TARGET GRID ARRAY IS POORLY SHAPED")
             elif target_grid[r+n_steps][c] is not None:
                 vert_step.append(np.linalg.norm(np.array(target_grid[r+n_steps][c]) - np.array(coord))/n_steps)
                 found_bottom_neighbour = True
-            n_steps+=1
+            else:
+                n_steps+=1
         
         n_steps = 1
         while not found_right_neighbour:
@@ -295,7 +328,7 @@ print("The center of the target is off by: " +str(target_displacement) + " targe
 print("The center of the target is off by: " +str(mirror_displacement)+ " mirror mm")
 
 writefile = 'Multi-Target Analysis.csv'
-write_data = [targetID, str(np.mean(horz_step)), str(np.mean(vert_step)), str(target_to_mirror_x), str(target_to_mirror_z), str(mirror_center_x), str(mirror_center_z), str(mirror_displacement[0]), str(mirror_displacement[1])]
+write_data = [targetID, str(np.mean(horz_step)),str(np.std(horz_step)), str(np.mean(vert_step)), str(np.std(vert_step)), str(target_to_mirror_x), str(target_to_mirror_z), str(mirror_center_x), str(mirror_center_z), str(mirror_displacement[0]), str(mirror_displacement[1])]
 with open(writefile, 'a') as csvfile:
     csvwriter = csv.writer(csvfile,lineterminator='\n')
     csvwriter.writerow(write_data)
