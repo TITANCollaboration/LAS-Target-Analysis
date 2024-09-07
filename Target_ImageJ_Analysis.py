@@ -110,6 +110,9 @@ def main():
     horz_step, vert_step = get_grid_spacing(target_grid)
     print("The average horizontal step is: "+ str(np.mean(horz_step)) + "mm")
     print("The average vertical step is: "+ str(np.mean(vert_step)) + "mm")
+    print("The std in horizontal step is: "+ str(np.std(horz_step)) + "mm")
+    print("The std in vertical step is: "+ str(np.std(vert_step)) + "mm")
+    
 
 #call main()
 main()
