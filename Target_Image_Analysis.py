@@ -43,7 +43,7 @@ def rotate(ablation_spots, theta):
 #----Read output csv from imageJ---- 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(current_dir)
-targetID = 'Cu_17'
+targetID = 'Cu_12_10 Groups'
 file = 'ImageJ_output\\'+targetID+ ' Measurements.csv'
 
 #Store the measurements taken with the following column structure: 
