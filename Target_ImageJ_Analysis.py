@@ -18,8 +18,11 @@ def parse_data(targetID,measurements_dir):
     Parses ImageJ output and returns important parameters to pass to other functions. 
 
     @Params
-
+    targetID (string) - the target ID used to designate the specific target photo. Eg. Cu_02. Can take the form Cu_02_02 if two or more photos of Cu_02 were taken
+    measurements_dir (pathlike, string) - the parent directory of the ImageJ_output folder containing all of the ImageJ measurements for each target
     @return
+    ablation_pos (array) - the ablation spot centroid positions from the ImageJ measurement. 
+    rotate_angle (float) - the angle to rotate the ablation positions to best align the positions measured into a horizontal/vertical grid. 
     """
     os.chdir(measurements_dir)
     file = 'ImageJ_output\\'+targetID+ ' Measurements.csv'
@@ -44,13 +47,15 @@ def rotate(ablation_pos, theta):
     Rotates a set of ablation positions by some angle theta
 
     @Params
-
+    ablation_pos (arraylike) - the positions to rotate
+    theta (float) - the amount of rotation in degrees (rotate clockwise)
     @return
+    The rotated ablation spot postiitons rotated clockwise by theta.
     """
     rotation_matrix = np.array([[np.cos(theta), -1*np.sin(theta)],[np.sin(theta), np.cos(theta)]])
     return np.dot(ablation_pos, rotation_matrix.T)
 
-def initialize_grid(ablation_pos,rotate_angle, step_thresh):
+def initialize_grid(ablation_pos,rotate_angle, shape):
     """
     Initializes a grid of on-target ablation spot positions from measurements of a rectangular grid taken in imageJ. 
     Scans through a threshold range until the grid can be reconstructed properly. If the deviation 
@@ -60,103 +65,54 @@ def initialize_grid(ablation_pos,rotate_angle, step_thresh):
     @Params:
     ablation_pos - 2D array of [x,z] ablation spot positions on the target from ImageJ measurement
     rotate_angle - angle taken from ImageJ measurement
-    step thresh - array of scalars [step thresh x, step thresh z] the thresholds for the step sizes such that one step
-    in a given direction is greater than the thresh 
-
+    shape (tuple)- The shape of the grid of points taken -(#rows, #cols)
     @return
     """
 
     #rotate the positions to straighten rows/cols
     ablation_pos = rotate(np.array(ablation_pos), rotate_angle)
-    ablated_x = ablation_pos[3:,0]
-    ablated_z = ablation_pos[3:,1]
-
-    #Sorting all coordinates into a 2D grid
-
-    #sort by z 
-    sorted_z= np.argsort(ablated_z)
-    ablated_x = ablated_x[sorted_z]
-    ablated_z = ablated_z[sorted_z]
-    cols = []
-    col = []
-    rows = []
-    row = []
-    row_length = 0 
-    col_length = 0
-    #iterating over sorted z indices except last one  
-    for i in range(len(ablated_z)-1):
-        #add the index to the row 
-        row.append(i)
-        #if the vertical distance to the next point is greater than the threshold, add the row to the list of rows and start a new row for the next index
-        if np.abs(ablated_z[i]-ablated_z[i+1])>step_thresh[1]: #assuming vertical step size>step_thresh target mm
-            if len(rows) == 0:
-                row_length = len(row)
-            if len(row)!=row_length and i<len(ablated_z)-2:
-                raise ValueError("Attempting to build grid with non uniform row lenghts.")
-            rows.append(row)
-            row_length = len(row)
-            row = []
-    #add the final index to the last row and add the last row to the list of rows
-    row.append(range(len(ablated_z))[-1])
-    if len(row) != row_length:
-        raise ValueError("Attempting to build grid with non uniform row lenghts.")
-    rows.append(row)
-    
-    #sort by x
-    sorted_x = np.argsort(ablated_x)
-
-    #iterate over sorted x indices except last one
-    for i in range(len(ablated_x)-1):
-        #add the index to the column
-        col.append(i)
-        #if the horizontal distance to the next point is greater than the threshold, add the column to the list of columns and start a new column for the next index
-        if np.abs(ablated_x[sorted_x][i]-ablated_x[sorted_x][i+1])>step_thresh[0]: #assuming horizontal step size >step_thresh target mm
-            if len(cols) == 0:
-                col_length = len(col)
-            if len(col)!=col_length and i<len(ablated_x)-2:
-                raise ValueError("Attempting to build grid with non-uniform column lengths")
-            cols.append(col)
-            col = []
-        
-    #accounting for the final index as with the rows:
-    col.append(range(len(ablated_x))[-1])
-    if len(col)!=col_length:
-        raise ValueError("Attempting to build grid with non-uniform column lengths")
-    cols.append(col)
-
-    #initialize target and mirror grids
+    print(ablation_pos)
+    #Sorting all coordinates into the 2D grid
     target_grid = []
-    row_counter = 0
-
-    #Fill grid and add spacings row by row:
-    for row in rows:
-        target_grid.append([None]) #initialize an empty row
-
-        #sort columns within each row
-        sorted_cols = np.argsort(ablated_x[row])
-        ablated_x[row] = ablated_x[row][sorted_cols]
-        ablated_z[row] = ablated_z[row][sorted_cols]
-        for i in range(len(row)):
-            #Loop over each coordinate in the row and add to the grids
-            target_grid[row_counter].append([ablated_x[row][i], ablated_z[row][i]])
-        row_counter+=1
+    for i in range(shape[0]):
+        target_grid.append(ablation_pos[shape[1]*i:shape[1]*i+shape[1]])
     return target_grid
 
 def get_grid_spacing(target_grid):
     """
-
     @Params
-
+    target_grid (arraylike) - the ablation coordinates stored in a 2D array mimicing their real relative positions
     @return
+    horz_step (list) - all horizontal spacings between adjacent ablation grid coordinates 
+    vert_step (list) - all vertical spacings between adjacent ablation grid coordinates 
     """
     vert_step = []
     horz_step = []
 
     for r, row in enumerate(target_grid):
+        if r == 0:
+                continue
         for c, coord in enumerate(row):
-            vert_step.append(np.linalg.norm(np.array(target_grid[r+1][c]) - np.array(coord)))
-            horz_step.append(np.linalg.norm(np.array(target_grid[r][c+1]) - np.array(coord)))
+            if c == 0:
+                continue
+            vert_step.append(np.linalg.norm(np.array(target_grid[r-1][c]) - np.array(coord)))
+            horz_step.append(np.linalg.norm(np.array(target_grid[r][c-1]) - np.array(coord)))
+    return horz_step, vert_step
 
+def main():
+    """
+    To use this analysis code first specify the directory of the imageJ output folder, then call parse_data with the specific target to be analyzed, then call
+    initialize_grid and get_grid_spacings to get the ablation coordinates and spacings.
+    """
+    dir = os.path.dirname(os.path.abspath(__file__))
+    ablation_pos, rotate_angle = parse_data("Cu_17", dir)
+    target_grid = initialize_grid(ablation_pos,rotate_angle, (5,5))
+    horz_step, vert_step = get_grid_spacing(target_grid)
+    print("The average horizontal step is: "+ str(np.mean(horz_step)) + "mm")
+    print("The average vertical step is: "+ str(np.mean(vert_step)) + "mm")
+
+#call main()
+main()
 
 
 
